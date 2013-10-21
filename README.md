@@ -2,7 +2,7 @@ compliance
 ==========
 # Server Hardening
 
-[![compliance demo](https://github.com/rahulinux/compliance/raw/master/img/screen-shot.png)](#features)
+![compliance demo](https://raw.github.com/rahulinux/compliance/master/screen-shot1.png)
 
 # Why this script reuqired ?
 
