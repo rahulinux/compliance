@@ -19,6 +19,58 @@ _CONF
 }
 
 
+Audit_Perm() {
+# it will set perm 0600 using Audit_control Function
+cat <<_Params
+/var/log/messages
+/var/log/boot.log
+/var/log/maillog
+/var/log/sudo.log
+/var/log/secure
+/var/log/cron
+/var/log/dmesg
+_Params
+}
+
+User_Perm(){
+cat <<_Params
+/etc/passwd	644
+/etc/group	644
+/etc/shadow	400
+_Params
+
+}
+
+Disable_Users_list(){
+
+cat <<_list
+lp
+sync
+shutdown
+halt
+mail
+news
+uucp
+operator
+games
+gopher
+ftp
+_list
+
+}
+
+# add groups which you want to disable 
+Disable_Groups_list=( lp games uucp )
+
+Log_Params() {
+cat <<_Params
+*.info;mail.none;authpriv.none;cron.none                /var/log/messages
+authpriv.*                                              /var/log/secure
+mail.*                                                  -/var/log/maillog
+_Params
+# log for sudo will done manually in Log_Audit Function
+}
+
 Kernel_Params() {
 
 cat <<_Params
@@ -120,6 +172,7 @@ cat <<_EOF
     |   2. TCP Wrapper                 |
     |   3. FileSystem Security Check   |
     |   4. Kernl Level Security        |
+    |   5. Log & Audit Control         |
     ------------------------------------
 ############################################
 
@@ -140,8 +193,12 @@ ReadOnly() {
 	local on_off=$1
 	conf=$2
 	case $1 in 
-		on) chattr +i $conf ;;
-		off) chattr -i $conf ;;
+		on) 	chmod u-w $conf ;
+			chattr +i $conf ;
+					;;
+		off) 	chattr -i $conf ;
+			chmod u+w $conf ;
+					;;
 	esac
 
 }
@@ -240,7 +297,7 @@ Kernel_Tuning() {
 		if grep -qP "${search_pattern}" $Conf; then
             
         # the value adding check already exists or not 
-        exist_or_not=$( echo "{values}" |\
+        exist_or_not=$( echo "${values}" |\
                         sed -ne 's/\(\S*\) \(=\) \([A-Za-z0-9.]*\)/^[ ^\\t]*\1*[ ^\\t]*\2\*[ ^\\t]*\3/p')
 
             if grep -qP "${exist_or_not}" $Conf; then
@@ -260,6 +317,125 @@ Kernel_Tuning() {
 		fi
 
 	done < "${Tmp_params}"
+	rm -f "${Tmp_params}"
+
+}
+
+Log_check() {
+	Conf=/etc/syslog.conf
+	[[ ! -f ${Conf}"-bkp-$(date +%F)" ]] && cp ${Conf}{,-bkp-$(date +%F)}
+	Tmp_params=$(mktemp)
+        Log_Params > "${Tmp_params}"
+	regex='^[ ^\t\*a-z;.0-9 \t-]*'
+        while read  values logfile
+        do
+	
+		if ! grep -qP "${regex}${logfile}" $Conf; then
+			newvalue="$(echo -e "${values}\t${logfile}" | expand -t 56)"
+			echo sed -i "'\$a ${newvalue}'" $Conf | sh	
+			OK "$logfile"
+		else
+			Exists "Log check for $logfile"
+		fi	
+		
+	done < ${Tmp_params}
+	rm -f "${Tmp_params}"
+
+	# for Sudo log
+	sudo_conf='/etc/sudoers'
+	sudo_log="$( grep -P '^[ ^\t]*Defaults[ ^\t]*logfile' $sudo_conf )"
+	sudo_param='Defaults logfile=/var/log/sudo.log'
+	if [[ -z $sudo_log ]]; then
+		chmod u+w $sudo_conf
+		echo sed -i "'\$a ${sudo_param}'" $sudo_conf | sh 
+		OK "Updating Sudores"
+		chmod u-w $sudo_conf
+		touch "/var/log/sudo.log"
+	else
+	  	logpath="$(cut -d'=' -f2 <<< "${sudo_log}")"
+		if [[ "${logpath}" == "/var/log/sudo.log" ]]; then
+			Exists "Log check for $logpath"
+		else
+			search=$(echo $logpath | sed 's/\(\/\)/\\\//g' )
+			chmod u+w $sudo_conf
+			echo sed -i "'s/$search/\/var\/log\/sudo.log/'" $sudo_conf | sh
+			chmod u-w $sudo_conf
+			OK "Updating Sudores"
+			touch "/var/log/sudo.log"
+		fi
+	fi
+}
+
+Audit_control() {
+
+	Tmp_params=$(mktemp)
+        Audit_Perm > "${Tmp_params}"
+        while read  f
+	do
+		[[ $(stat -c '%a' ${f}) == 600 ]] && Exists "Permission 600 $f" ||
+		{ chmod 0600 ${f}; OK "Updated ${f}"; }
+	done < ${Tmp_params}
+	rm -f ${Tmp_params}
+
+}
+
+User_Set_Perm(){
+	Tmp_params=$(mktemp)
+	User_Perm > "${Tmp_params}"
+	while read file perm
+	do
+		[[ $(stat -c '%a' ${file}) == ${perm} ]] && Exists "Permission $perm $file" ||
+		{ chmod ${perm} ${file}; OK "Updated ${file}"; }
+
+	done < ${Tmp_params}
+	rm -f ${Tmp_params}
+}
+
+Disable_user(){
+
+	Tmp=$(mktemp)
+	Disable_Users_list > "${Tmp}"
+	PassFile='/etc/passwd'
+	BkpPassdb=${PassFile}-bkp-$(date +%F)
+	[[ ! -f $BkpPassdb ]] && cp $PassFile $BkpPassdb
+	while read user
+	do
+		if	grep -qP "^${user}" $PassFile; then
+		 	
+			grep -qP "^#[ ^\t]*""${user}" $PassFile && { Exists "User $user already Disable"; continue; }
+			sed -i "s/^$user/# $user/" $PassFile
+			OK "Disableing User $user"
+		else
+			Exists "User $user already Disable"
+		fi
+		
+			
+
+	done < ${Tmp}
+	rm -f ${Tmp}
+
+}
+
+Disable_Group() {
+	GrpFile='/etc/group'
+        Bkpgrpdb=${GrpFile}-bkp-$(date +%F)
+        [[ ! -f $Bkpgrpdb ]] && cp $GrpFile $Bkpgrpdb
+
+	for g in "${Disable_Groups_list[@]}"; 
+	do
+		
+		if      grep -qP "^${g}" $GrpFile; then
+
+                        grep -qP "^#[ ^\t]*""${g}" $GrpFile && { Exists "Group $g already Disable"; continue; }
+                        sed -i "s/^$g/# $g/" $GrpFile
+                        OK "Disableing Group $g"
+                else
+                        Exists "Group $g already Disable"
+                fi
+
+		
+	done
+
 
 }
 
@@ -271,15 +447,21 @@ Show_menu
 read input
 	case $input in
 
-		1)  echo -e "Select SSH\n"
+		1)  echo  "Select SSH"
 			SSH_Security_check	;;
-		2)  echo -e "TCP Wrapper\n"
+		2)  echo  "TCP Wrapper"
 			TCPWrapper_check 	;;
-		3)  echo -e "FileSystem Security Check\n"
+		3)  echo  "FileSystem Security Check"
 			FileSystemChecks	;;
-		4)  echo -e "Kernel Level Security\n"
+		4)  echo  "Kernel Level Security"
 			Kernel_Tuning		;;
-
+		5)  echo  "Log & audit control"
+			Log_check		;
+			Audit_control		;
+			User_Set_Perm		;
+			Disable_user		;
+			Disable_Group		;
+						;;
 		*)  echo "unknown Options... "; 
 	esac
 Sub_menu
