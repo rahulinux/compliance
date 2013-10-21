@@ -18,6 +18,38 @@ Banner /etc/issue.ssh
 _CONF
 }
 
+SystemServiceList() {
+# enable = level 253
+cat <<_list
+auditd                  enable
+rscd                    enable
+iptables                enable
+sysstat                 enable
+rwalld                  disable
+pcmcia                  disable
+apmd                    disable
+avahi-daemon            disable
+sendmail                disable
+smb                     disable
+nfs                     disable
+autofs                  disable
+nfslock			disable
+ypbind                  disable
+ypserv                  disable
+yppasswdd               disable
+portmap                 disable
+netfs                   disable
+cups                    disable
+hpoj			disable
+lpd			disable
+squid                   disable
+kudzu                   disable
+bluetooth               disable
+cups-config-daemon      disable
+_list
+
+}
+
 
 Audit_Perm() {
 # it will set perm 0600 using Audit_control Function
@@ -33,10 +65,22 @@ _Params
 }
 
 User_Perm(){
+# file			mode	uid:gid
 cat <<_Params
-/etc/passwd	644
-/etc/group	644
-/etc/shadow	400
+/etc/passwd		644	0:0
+/etc/group		644	0:0	
+/etc/shadow		400	0:0
+/etc/crontab		400	0:0	
+/etc/cron.deny		400	0:0
+/etc/at.deny		400	0:0
+/etc/cron.allow		400	0:0
+/etc/at.allow		400	0:0
+/var/spool/cron		700	0:0
+/etc/cron.d		700	0:0
+/etc/cron.hourly	700	0:0
+/etc/cron.monthly	700	0:0
+/etc/cron.daily		700	0:0
+/etc/cron.weekly	700	0:0
 _Params
 
 }
@@ -173,6 +217,7 @@ cat <<_EOF
     |   3. FileSystem Security Check   |
     |   4. Kernl Level Security        |
     |   5. Log & Audit Control         |
+    |   6. Service Control             |
     ------------------------------------
 ############################################
 
@@ -372,6 +417,7 @@ Audit_control() {
         Audit_Perm > "${Tmp_params}"
         while read  f
 	do
+		[[ ! -f $f ]] && touch $f
 		[[ $(stat -c '%a' ${f}) == 600 ]] && Exists "Permission 600 $f" ||
 		{ chmod 0600 ${f}; OK "Updated ${f}"; }
 	done < ${Tmp_params}
@@ -382,10 +428,12 @@ Audit_control() {
 User_Set_Perm(){
 	Tmp_params=$(mktemp)
 	User_Perm > "${Tmp_params}"
-	while read file perm
+	while read file perm owner
 	do
+		[[ ! -f $file ]] && touch $file
 		[[ $(stat -c '%a' ${file}) == ${perm} ]] && Exists "Permission $perm $file" ||
-		{ chmod ${perm} ${file}; OK "Updated ${file}"; }
+		{ chmod -R ${perm} ${file}; OK "Updated ${file}"; }
+		[[ $(stat -c '%u:%g' ${file}) == $owner ]] || chown ${owner} ${file}
 
 	done < ${Tmp_params}
 	rm -f ${Tmp_params}
@@ -439,6 +487,41 @@ Disable_Group() {
 
 }
 
+Service_Control(){
+
+	ServiceList=$(mktemp)
+	SystemServiceList > $ServiceList
+	while read srv option
+	do
+		 srvpath="/etc/init.d/$srv"
+		if [[ ! -f $srvpath ]]; then
+			Warning "$srv Service not exists"
+			continue
+		elif [[ $option == "enable" ]]; then
+			/etc/init.d/$srv start >/dev/null 2>&1
+			chkconfig --level 2345 $srv on 
+		elif [[ $option == "disable" ]]; then
+			
+			if /etc/init.d/$srv status >/dev/null 2>&1
+			then
+				echo "$srv Service currently Running..."
+				echo -e "Do you want really stop this service (Yes/No)?(n):" 
+				read -s ans 
+				case $ans in 
+					[yY]|[yY][eE][sS]) /etc/init.d/$srv stop
+							   chkconfig $srv off ;;
+					[nN]|[nN][oO])	continue ;;
+					#	*)	continue ;;
+				esac
+			fi
+		fi
+
+	done < $ServiceList
+	rm -f $ServiceList
+
+
+}
+
 
 #------------------------{ Main Program}-----------------------------------------
 while ((TST>0))
@@ -462,6 +545,9 @@ read input
 			Disable_user		;
 			Disable_Group		;
 						;;
+		6)  echo "Service Control"	;
+			Service_Control		;;
+
 		*)  echo "unknown Options... "; 
 	esac
 Sub_menu
