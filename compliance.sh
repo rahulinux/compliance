@@ -234,17 +234,18 @@ _EOF
 Line "="
 echo ""
 }
-ReadOnly() {
-	local on_off=$1
-	conf=$2
-	case $1 in 
-		on) 	chmod u-w $conf ;
-			chattr +i $conf ;
-					;;
-		off) 	chattr -i $conf ;
-			chmod u+w $conf ;
-					;;
-	esac
+
+
+ReadOnly() {                                                                                               
+    local on_off=$1
+    conf=$2
+    case $1 in
+
+        on)     chmod u-w $conf 
+                chattr +i $conf ;;
+        off)    chattr -i $conf 
+                chmod u+w $conf ;;
+    esac
 
 }
 
