@@ -3,8 +3,8 @@ compliance
 # Server Hardening
 
 Authors : 
-    Vasanta Koli <http://itsgateway.com>
-    Rahul Patil <http://www.linuxian.com>
+  - Vasanta Koli <http://itsgateway.com>
+  - Rahul Patil <http://www.linuxian.com>
 
 ![compliance demo](https://raw.github.com/rahulinux/compliance/master/screen-shot1.png)
 
