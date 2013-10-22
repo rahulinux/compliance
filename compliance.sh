@@ -209,17 +209,17 @@ Exists() {
 Show_menu() {
 clear
 cat <<_EOF
-    ------------------------------------
-    |              Menu                |
-    ------------------------------------
-    |   1. SSH Security Check          |
-    |   2. TCP Wrapper                 |
-    |   3. FileSystem Security Check   |
-    |   4. Kernl Level Security        |
-    |   5. Log & Audit Control         |
-    |   6. Service Control             |
-    ------------------------------------
-############################################
+            ------------------------------------
+            |              Menu                |
+            ------------------------------------
+            |   1. SSH Security Check          |
+            |   2. TCP Wrapper                 |
+            |   3. FileSystem Security Check   |
+            |   4. Kernl Level Security        |
+            |   5. Log & Audit Control         |
+            |   6. Service Control             |
+            ------------------------------------
+##############################################################                                             
 
 _EOF
 }
@@ -548,14 +548,12 @@ read input
 		6)  echo "Service Control"	;
 			Service_Control		;;
 
-		*)  echo "unknown Options... "; 
+		*)  echo "unknown Options... "	; 
 	esac
 Sub_menu
 read input
 	case $input in
-		1) TST=1
-						;;
-		2) TST=0
-						;;
+		1) TST=1			;;
+		2) TST=0			;;
 	esac
 done
