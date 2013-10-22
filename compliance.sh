@@ -18,6 +18,26 @@ Banner /etc/issue.ssh
 _CONF
 }
 
+ISSUE_SSHD(){
+
+cat <<_Banner
++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
++                             =================                             +
++                             !!! A L E R T !!!                             +
++                             =================                             +
++                                                                           +
++ You are entering into a secured area!  Your IP,  Login Time, Username has +
++ been noted and has been sent to the server administrator! This service is +
++ restricted to authorized users only.  All activities  on  this system are +
++ logged.  Unauthorized access will be fully investigated  and  reported to +
++ the appropriate law enforcement agencies.                                 +
++                                                                           +
++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+_Banner
+
+}
+
+
 SystemServiceList() {
 # enable = level 253
 cat <<_list
@@ -46,6 +66,26 @@ squid               disable
 kudzu               disable
 bluetooth           disable
 cups-config-daemon  disable
+_list
+
+}
+
+Xinetd_srv_list(){
+
+cat <<_list
+rexec           disable
+rlogin          disable
+rsh             disable
+rsync           disable 
+telnet          disable
+tftp            disable
+time-dgram      disable
+time-stream     disable
+uucp            disable
+chargen-dgram   disable
+chargen-stream  disable
+chargen-udp     disable
+chargen         disable
 _list
 
 }
@@ -165,43 +205,43 @@ TST=1
 # Functions
 #-----------------------------------------
 Checking() {
-    msg="${@}"
-    char=${#msg}
-    col_size=$(( $(tput cols) - 45))
-    col=$(( col_size - char))
+    local msg="${@}"
+    local char=${#msg}
+    local col_size=$(( $(tput cols) - 45))
+    local col=$(( col_size - char))
 	printf '%s%*s%s\n' $(tput setaf 3 ; tput bold )"${@}" $col "[   OK    ]"
     tput sgr 0
 }
 
 OK() {
-	msg="${@}"
-	char=${#msg}
-	col_size=$(( $(tput cols) - 45))
-	col=$(( col_size - char))
+	local msg="${@}"
+	local char=${#msg}
+	local col_size=$(( $(tput cols) - 45))
+	local col=$(( col_size - char))
 	printf '%s%*s%s\n' $(tput bold )"${@}" $col "[ Success ]"
 	tput sgr 0
 }
 Line() {
-	col_size=$(( $(tput cols) - 45))
+	local col_size=$(( $(tput cols) - 45))
 	for (( i=$col_size; i>0; i--))
 	do
 		printf "%s" "${@}"
 	done
 }
 Warning() {
-	msg="${@}"
-	char=${#msg}
-	col_size=$(( $(tput cols) - 45))
-	col=$(( col_size - char))
+	local msg="${@}"
+	local char=${#msg}
+	local col_size=$(( $(tput cols) - 45))
+	local col=$(( col_size - char))
 	printf '%s%*s%s\n' $(tput setaf 1; tput bold )"${@}" $col "[ Warning ]"
 	tput sgr 0
 }
 
 Exists() {
-	msg="${@}"
-	char=${#msg}
-	col_size=$(( $(tput cols) - 45))
-	col=$(( col_size - char))
+	local msg="${@}"
+	local char=${#msg}
+	local col_size=$(( $(tput cols) - 45))
+	local col=$(( col_size - char))
 	printf '%s%*s%s\n' $(tput setaf 2; tput bold )"${@}" $col "[  Exist  ]"
 	tput sgr 0
 }
@@ -210,7 +250,7 @@ Show_menu() {
 clear
 cat <<_EOF
             ------------------------------------
-            |              Menu                |
+            |     Security Compliance Menu     |
             ------------------------------------
             |   1. SSH Security Check          |
             |   2. TCP Wrapper                 |
@@ -218,6 +258,8 @@ cat <<_EOF
             |   4. Kernl Level Security        |
             |   5. Log & Audit Control         |
             |   6. Service Control             |
+            |   7. All Security Compliance     |
+            |   8. Exit                        |
             ------------------------------------
 ##############################################################                                             
 
@@ -238,7 +280,7 @@ echo ""
 
 ReadOnly() {                                                                                               
     local on_off=$1
-    conf=$2
+    local conf=$2
     case $1 in
 
         on)     chmod u-w $conf 
@@ -279,7 +321,7 @@ ChecknAdd() {
 
 
 SSH_Security_check() {
-	TempConf=$(mktemp)
+	local TempConf=$(mktemp)
 	SSH_Params > "${TempConf}"
 	ReadOnly off $SSHD_Conf
 	while read value 
@@ -288,6 +330,7 @@ SSH_Security_check() {
 	done < "${TempConf}"
 	rm -f "${TempConf}"
 	ReadOnly on $SSHD_Conf
+	[[ ! -f /etc/issue.ssh ]] && ISSUE_SSHD > /etc/issue.ssh
 }
 
 
@@ -299,7 +342,25 @@ TCPWrapper_check() {
 		HostsDeny > ${Hosts_Deny}				
 	else
 		Exists "ALL:ALL in $Hosts_Deny"
-	fi 
+	fi
+
+	CurrentIP=$(who -m | grep --color -oP "(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})")
+	Host_Allow=/etc/hosts.allow
+	SSHD_Entry=$(grep -i sshd: $Host_Allow)
+
+	if [[ -z $SSHD_Entry ]]; then
+		echo "SSHD: $CurrentIP" >> $Host_Allow
+	else
+		if ! echo $SSHD_Entry| grep -wq $CurrentIP; then
+			sed -i "s/${SSHD_Entry}/${SSHD_Entry},${CurrentIP}/" $Host_Allow 
+			OK "Updated $CurrentIP in $Host_Allow for SSHD"
+		fi
+		
+
+	fi
+	
+
+ 
 
 }
 
@@ -308,7 +369,18 @@ FileSystemChecks() {
 	if ! $( mount | grep -q "/tmp" ); then
 		Warning "/tmp not exists.."
 	else
-		OK "Updating /etc/fstab for /tmp partition.."
+		 if [[ $(mount | grep "/tmp" | awk '{print $NF}') = '(rw,noexec,nosuid,nodev)' ]]; then
+
+                        Exists "Partition /tmp $(mount | grep "/tmp" | awk '{print $NF}')"
+                else
+                        OK "Updating /etc/fstab for /tmp partition.."
+                        Fstab='/etc/fstab'
+                        cp ${Fstab}{,-bkp-$(date +%F)} >/dev/null 2>&1
+                        awk '1;/\/tmp/{$4="nosuid,nodev,noexec";print}' $Fstab | column -t > $Fstab
+                        sed -i '/\/tmp/{s/^/#/;:a;n;ba}' $Fstab
+                        mount -o remount /tmp
+                fi
+
 	fi
 	
 	if ! $( mount | grep -q "/dev/shm" ); then
@@ -316,7 +388,7 @@ FileSystemChecks() {
         else
 		if [[ $(mount | grep "/dev/shm" | awk '{print $NF}') = '(rw,noexec,nosuid,nodev)' ]]; then
 
-			Exists "$(mount | grep "/dev/shm" | awk '{print $NF}')"	
+			Exists "Partition /dev/shm $(mount | grep "/dev/shm" | awk '{print $NF}')"	
 		else
                 	OK "Updating /etc/fstab for /dev/shm partition.."
 			Fstab='/etc/fstab'
@@ -333,8 +405,8 @@ FileSystemChecks() {
 
 Kernel_Tuning() {
 
-	Conf='/etc/sysctl.conf'
-	Tmp_params=$(mktemp)
+	local Conf='/etc/sysctl.conf'
+	local Tmp_params=$(mktemp)
 	Kernel_Params > "${Tmp_params}"
 	while read  values 
 	do
@@ -368,9 +440,9 @@ Kernel_Tuning() {
 }
 
 Log_check() {
-	Conf=/etc/syslog.conf
+	local Conf=/etc/syslog.conf
 	[[ ! -f ${Conf}"-bkp-$(date +%F)" ]] && cp ${Conf}{,-bkp-$(date +%F)}
-	Tmp_params=$(mktemp)
+	local Tmp_params=$(mktemp)
         Log_Params > "${Tmp_params}"
 	regex='^[ ^\t\*a-z;.0-9 \t-]*'
         while read  values logfile
@@ -414,7 +486,7 @@ Log_check() {
 
 Audit_control() {
 
-	Tmp_params=$(mktemp)
+	local Tmp_params=$(mktemp)
         Audit_Perm > "${Tmp_params}"
         while read  f
 	do
@@ -490,38 +562,84 @@ Disable_Group() {
 
 Service_Control(){
 
-	ServiceList=$(mktemp)
+	ServiceList="$(mktemp)"
 	SystemServiceList > $ServiceList
-	while read srv option
+	local srv=""
+	local option=""
+	while read -u 3 srv option 	
 	do
-		 srvpath="/etc/init.d/$srv"
+		local srvpath="/etc/init.d/$srv"
 		if [[ ! -f $srvpath ]]; then
 			Warning "$srv Service not exists"
 			continue
 		elif [[ $option == "enable" ]]; then
-			/etc/init.d/$srv start >/dev/null 2>&1
+			$srvpath start >/dev/null 2>&1
 			chkconfig --level 2345 $srv on 
 		elif [[ $option == "disable" ]]; then
 			
-			if /etc/init.d/$srv status >/dev/null 2>&1
+			if $srvpath status | grep -q "running" >/dev/null 2>&1
 			then
 				echo "$srv Service currently Running..."
-				echo -e "Do you want really stop this service (Yes/No)?(n):" 
-				read -s ans 
+				echo -n "Do you want really stop this service (Yes/No)?(n): " 
+				read  ans 
 				case $ans in 
-					[yY]|[yY][eE][sS]) /etc/init.d/$srv stop
+					[yY]|[yY][eE][sS]) Warning "Stopping $srv"
+							   $srvpath stop
 							   chkconfig $srv off ;;
-					[nN]|[nN][oO])	continue ;;
-					#	*)	continue ;;
+					[nN]|[nN][oO])	Warning "Skipping $srv"
+							continue ;;
+						*)	Warning "Skipping $srv"
+							continue ;;
 				esac
 			fi
 		fi
 
-	done < $ServiceList
+	done  3< $ServiceList
 	rm -f $ServiceList
 
 
 }
+
+
+Xinetd_srv_control(){
+
+	Tmp=$(mktemp)
+	Xinetd_srv_list > $Tmp
+	local srv=""
+	local option=""
+	while read -u 3 srv option
+	do
+		local srvpath="/etc/xinetd.d/$srv"
+                if [[ ! -f $srvpath ]]; then
+                        Warning "$srv Service not exists in Xinetd"
+                        continue
+                elif [[ $option == "enable" ]]; then
+                        /etc/init.d/xinetd status | grep -q "running" ||
+			/etc/init.d/xinetd start >/dev/null 2>&1 
+			OK "Starting $srv in Xinetd"
+                        chkconfig $srv on
+                elif [[ $option == "disable" ]]; then
+
+                        if chkconfig --list $srv | grep -iq "on" >/dev/null 2>&1
+                        then
+                                echo "$srv Service currently Running..."
+                                echo -n "Do you want really stop this service (Yes/No)?(n): "
+                                read  ans
+                                case $ans in
+                                        [yY]|[yY][eE][sS]) Warning "Stopping $srv in Xinetd"
+                                                           chkconfig $srv off ;;
+                                        [nN]|[nN][oO])  Warning "Skipping $srv"
+                                                        continue ;;
+                                                *)      Warning "Skipping $srv"
+                                                        continue ;;
+                                esac
+                        fi
+                fi
+
+	done 3< $Tmp
+	rm -f $Tmp
+}
+
 
 
 #------------------------{ Main Program}-----------------------------------------
@@ -546,7 +664,21 @@ read input
             Disable_user
             Disable_Group       ;;
         6)  echo "Service Control"
-            Service_Control     ;;
+            Service_Control     
+	    Xinetd_srv_control;;
+	7)  echo "Selected All Options"
+	    SSH_Security_check
+	    TCPWrapper_check
+	    FileSystemChecks
+	    Kernel_Tuning
+	    Log_check
+	    Audit_control
+	    User_Set_Perm
+	    Disable_user
+	    Disable_Group
+	    Service_Control
+	    Xinetd_srv_control	;;
+	8)  exit 0		;;	
 
         *)  echo "unknown Options... "
                                 ;;
