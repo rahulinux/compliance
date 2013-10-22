@@ -528,32 +528,33 @@ while ((TST>0))
 do
 Show_menu
 read input
-	case $input in
+    case $input in
 
-		1)  echo  "Select SSH"
-			SSH_Security_check	;;
-		2)  echo  "TCP Wrapper"
-			TCPWrapper_check 	;;
-		3)  echo  "FileSystem Security Check"
-			FileSystemChecks	;;
-		4)  echo  "Kernel Level Security"
-			Kernel_Tuning		;;
-		5)  echo  "Log & audit control"
-			Log_check		;
-			Audit_control		;
-			User_Set_Perm		;
-			Disable_user		;
-			Disable_Group		;
-						;;
-		6)  echo "Service Control"	;
-			Service_Control		;;
+        1)  echo  "Select SSH"
+            SSH_Security_check  ;;
+        2)  echo  "TCP Wrapper"
+            TCPWrapper_check    ;;
+        3)  echo  "FileSystem Security Check"
+            FileSystemChecks    ;;
+        4)  echo  "Kernel Level Security"
+            Kernel_Tuning       ;;
+        5)  echo  "Log & audit control"
+            Log_check
+            Audit_control
+            User_Set_Perm
+            Disable_user
+            Disable_Group       ;;
+        6)  echo "Service Control"
+            Service_Control     ;;
 
-		*)  echo "unknown Options... "	; 
-	esac
+        *)  echo "unknown Options... "
+                                ;;
+    esac
 Sub_menu
 read input
-	case $input in
-		1) TST=1			;;
-		2) TST=0			;;
-	esac
+    case $input in                                                                                         
+        1) TST=1                ;;
+        2) TST=0                ;;
+    esac
 done
+
