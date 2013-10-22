@@ -21,31 +21,31 @@ _CONF
 SystemServiceList() {
 # enable = level 253
 cat <<_list
-auditd                  enable
-rscd                    enable
-iptables                enable
-sysstat                 enable
-rwalld                  disable
-pcmcia                  disable
-apmd                    disable
-avahi-daemon            disable
-sendmail                disable
-smb                     disable
-nfs                     disable
-autofs                  disable
-nfslock			disable
-ypbind                  disable
-ypserv                  disable
-yppasswdd               disable
-portmap                 disable
-netfs                   disable
-cups                    disable
-hpoj			disable
-lpd			disable
-squid                   disable
-kudzu                   disable
-bluetooth               disable
-cups-config-daemon      disable
+auditd              enable
+rscd                enable
+iptables            enable
+sysstat             enable
+rwalld              disable
+pcmcia              disable
+apmd                disable
+avahi-daemon        disable
+sendmail            disable
+smb                 disable
+nfs                 disable
+autofs              disable
+nfslock             disable
+ypbind              disable
+ypserv              disable
+yppasswdd           disable
+portmap             disable
+netfs               disable
+cups                disable
+hpoj                disable
+lpd                 disable
+squid               disable
+kudzu               disable
+bluetooth           disable
+cups-config-daemon  disable
 _list
 
 }
