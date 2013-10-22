@@ -65,22 +65,22 @@ _Params
 }
 
 User_Perm(){
-# file			mode	uid:gid
+# file                          mode            uid:gid
 cat <<_Params
-/etc/passwd		644	0:0
-/etc/group		644	0:0	
-/etc/shadow		400	0:0
-/etc/crontab		400	0:0	
-/etc/cron.deny		400	0:0
-/etc/at.deny		400	0:0
-/etc/cron.allow		400	0:0
-/etc/at.allow		400	0:0
-/var/spool/cron		700	0:0
-/etc/cron.d		700	0:0
-/etc/cron.hourly	700	0:0
-/etc/cron.monthly	700	0:0
-/etc/cron.daily		700	0:0
-/etc/cron.weekly	700	0:0
+/etc/passwd                     644              0:0
+/etc/group                      644              0:0
+/etc/shadow                     400              0:0
+/etc/crontab                    400              0:0
+/etc/cron.deny                  400              0:0
+/etc/at.deny                    400              0:0
+/etc/cron.allow                 400              0:0
+/etc/at.allow                   400              0:0
+/var/spool/cron                 700              0:0
+/etc/cron.d                     700              0:0
+/etc/cron.hourly                700              0:0
+/etc/cron.monthly               700              0:0
+/etc/cron.daily                 700              0:0
+/etc/cron.weekly                700              0:0
 _Params
 
 }
