@@ -8,7 +8,7 @@ Authors :
 
 ![compliance demo](https://raw.github.com/rahulinux/compliance/master/security.png)
 
-# Why this script reuqired ?
+# Why this script is required ?
 
 if you want enhancing server security through a variety of means which results in a much more secure 
 server operating environment, then script is useful for you.
