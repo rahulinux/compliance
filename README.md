@@ -18,10 +18,11 @@ you can easily add/modify paramater, in Configuration Section in Script.
 
 # How it will work ?
 
-It will follow the server hardning process which is mention in "server hardning parameters". 
-  - Backup of any configuration file which are going to edit as `config-bkp-current-date`. 
-  - Comment old paramaters and apply the new one. 
-  - Make configuration file readonly using chattr. 
+It will follow the server hardening process which is mention in "server hardening parameters".
+
+  - Backup of any configuration file which are going to edit as `config-bkp-current-date`.
+  - Comment old parameters and apply the new one.
+  - Make configuration file read-only using chattr. 
 
 # Prerequisites
 
