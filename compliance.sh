@@ -1,3 +1,15 @@
+#!/bin/bash
+
+#      
+# Title         :  compliance.sh
+# Description   :  This script is design for enhance server security 
+# Author        :  Rahul Patil, Vasanta Koli
+# Date          :  Wed Oct 23 13:44:58 IST 2013 
+# Version       :  0.1    
+# bash_version  :  Tested on GNU bash, version 3.2.25(1)-release
+# OS Specs      :  RHEL/CentOS 5.x 
+#
+
 #-----------------------------------------
 # Configurations
 #-----------------------------------------
@@ -312,7 +324,7 @@ ChecknAdd() {
 
          if ! grep -q -P "${grep_search_pattern}" $config_file ; then
             echo sed -i.bkp-$(date +%F) ${sed_patter_2} $config_file | sh
-	 OK "Done"
+	        OK "Done"
          fi
     fi
 
@@ -350,6 +362,7 @@ TCPWrapper_check() {
 
 	if [[ -z $SSHD_Entry ]]; then
 		echo "SSHD: $CurrentIP" >> $Host_Allow
+		OK "Updated $CurrentIP in $Host_Allow for SSHD"
 	else
 		if ! echo $SSHD_Entry| grep -wq $CurrentIP; then
 			sed -i "s/${SSHD_Entry}/${SSHD_Entry},${CurrentIP}/" $Host_Allow 
@@ -385,19 +398,19 @@ FileSystemChecks() {
 	
 	if ! $( mount | grep -q "/dev/shm" ); then
                 Warning "/dev/shm not exists.."
-        else
+    else
 		if [[ $(mount | grep "/dev/shm" | awk '{print $NF}') = '(rw,noexec,nosuid,nodev)' ]]; then
 
 			Exists "Partition /dev/shm $(mount | grep "/dev/shm" | awk '{print $NF}')"	
 		else
-                	OK "Updating /etc/fstab for /dev/shm partition.."
+            OK "Updating /etc/fstab for /dev/shm partition.."
 			Fstab='/etc/fstab'
 			cp ${Fstab}{,-bkp-$(date +%F)} >/dev/null 2>&1	
 			awk '1;/\/dev\/shm/{$4="nosuid,nodev,noexec";print}' $Fstab | column -t > $Fstab
 			sed -i '/\/dev\/shm/{s/^/#/;:a;n;ba}' $Fstab
 			mount -o remount /dev/shm
 		fi
-        fi
+    fi
 
 
 
@@ -410,13 +423,13 @@ Kernel_Tuning() {
 	Kernel_Params > "${Tmp_params}"
 	while read  values 
 	do
-		search_pattern=$( echo "${values}" |\
-			 sed -ne 's/\(\S*\) \(=\) \([A-Za-z0-9.]*\)/^[ ^\\t]*\1*[ ^\\t]*\2\*[ ^\\t]*/p' )
+    	search_pattern=$( echo "${values}" |\
+	    sed -ne 's/\(\S*\) \(=\) \([A-Za-z0-9.]*\)/^[ ^\\t]*\1*[ ^\\t]*\2\*[ ^\\t]*/p' )
 		if grep -qP "${search_pattern}" $Conf; then
             
-        # the value adding check already exists or not 
-        exist_or_not=$( echo "${values}" |\
-                        sed -ne 's/\(\S*\) \(=\) \([A-Za-z0-9.]*\)/^[ ^\\t]*\1*[ ^\\t]*\2\*[ ^\\t]*\3/p')
+                # the value adding check already exists or not 
+                exist_or_not=$( echo "${values}" |\
+                sed -ne 's/\(\S*\) \(=\) \([A-Za-z0-9.]*\)/^[ ^\\t]*\1*[ ^\\t]*\2\*[ ^\\t]*\3/p')
 
             if grep -qP "${exist_or_not}" $Conf; then
                 Exists "$values" 
@@ -424,10 +437,10 @@ Kernel_Tuning() {
             else
 
 			# if exists then comment old and add new
-			sed_pattern=$( echo "${values}" |\
-		 sed -ne 's/\(\S*\) \([A-Za-z0-9.\\\/=]*\) \([0-9]*\)/ \"\s\/\\(^\\s*\1\\s*[.0-9A-Za-z\\\/=]\\s*[.0-9A-Za-z\/]*\\\)\/# \\1\\n\1 \2 \3\/\"/p'	)
-			echo sed -i ${sed_pattern} $Conf | sh
-		    OK "${values}"
+    			sed_pattern=$( echo "${values}" |\
+	            	 sed -ne 's/\(\S*\) \([A-Za-z0-9.\\\/=]*\) \([0-9]*\)/ \"\s\/\\(^\\s*\1\\s*[.0-9A-Za-z\\\/=]\\s*[.0-9A-Za-z\/]*\\\)\/# \\1\\n\1 \2 \3\/\"/p'	)
+	    		echo sed -i ${sed_pattern} $Conf | sh
+		        OK "${values}"
             fi
 		else
 			echo "${values}" >> $Conf
@@ -442,11 +455,11 @@ Kernel_Tuning() {
 Log_check() {
 	local Conf=/etc/syslog.conf
 	[[ ! -f ${Conf}"-bkp-$(date +%F)" ]] && cp ${Conf}{,-bkp-$(date +%F)}
-	local Tmp_params=$(mktemp)
-        Log_Params > "${Tmp_params}"
-	regex='^[ ^\t\*a-z;.0-9 \t-]*'
-        while read  values logfile
-        do
+    local Tmp_params=$(mktemp)
+    Log_Params > "${Tmp_params}"
+    regex='^[ ^\t\*a-z;.0-9 \t-]*'
+    while read  values logfile
+    do
 	
 		if ! grep -qP "${regex}${logfile}" $Conf; then
 			newvalue="$(echo -e "${values}\t${logfile}" | expand -t 56)"
@@ -487,8 +500,8 @@ Log_check() {
 Audit_control() {
 
 	local Tmp_params=$(mktemp)
-        Audit_Perm > "${Tmp_params}"
-        while read  f
+    Audit_Perm > "${Tmp_params}"
+    while read  f
 	do
 		[[ ! -f $f ]] && touch $f
 		[[ $(stat -c '%a' ${f}) == 600 ]] && Exists "Permission 600 $f" ||
@@ -499,7 +512,7 @@ Audit_control() {
 }
 
 User_Set_Perm(){
-	Tmp_params=$(mktemp)
+	local Tmp_params=$(mktemp)
 	User_Perm > "${Tmp_params}"
 	while read file perm owner
 	do
@@ -513,7 +526,6 @@ User_Set_Perm(){
 }
 
 Disable_user(){
-
 	Tmp=$(mktemp)
 	Disable_Users_list > "${Tmp}"
 	PassFile='/etc/passwd'
@@ -530,31 +542,28 @@ Disable_user(){
 			Exists "User $user already Disable"
 		fi
 		
-			
-
 	done < ${Tmp}
 	rm -f ${Tmp}
 
 }
 
 Disable_Group() {
-	GrpFile='/etc/group'
-        Bkpgrpdb=${GrpFile}-bkp-$(date +%F)
-        [[ ! -f $Bkpgrpdb ]] && cp $GrpFile $Bkpgrpdb
+    
+    GrpFile='/etc/group'
+    Bkpgrpdb=${GrpFile}-bkp-$(date +%F)
+    [[ ! -f $Bkpgrpdb ]] && cp $GrpFile $Bkpgrpdb
 
 	for g in "${Disable_Groups_list[@]}"; 
 	do
 		
-		if      grep -qP "^${g}" $GrpFile; then
+		if grep -qP "^${g}" $GrpFile; then
+              grep -qP "^#[ ^\t]*""${g}" $GrpFile && { Exists "Group $g already Disable"; continue; }
+              sed -i "s/^$g/# $g/" $GrpFile
+              OK "Disableing Group $g"
+         else
+               Exists "Group $g already Disable"
+         fi
 
-                        grep -qP "^#[ ^\t]*""${g}" $GrpFile && { Exists "Group $g already Disable"; continue; }
-                        sed -i "s/^$g/# $g/" $GrpFile
-                        OK "Disableing Group $g"
-                else
-                        Exists "Group $g already Disable"
-                fi
-
-		
 	done
 
 
@@ -570,11 +579,11 @@ Service_Control(){
 	do
 		local srvpath="/etc/init.d/$srv"
 		if [[ ! -f $srvpath ]]; then
-			Warning "$srv Service not exists"
-			continue
+	    		Warning "$srv Service not exists"
+		    	continue
 		elif [[ $option == "enable" ]]; then
-			$srvpath start >/dev/null 2>&1
-			chkconfig --level 2345 $srv on 
+    			$srvpath start >/dev/null 2>&1
+	    		chkconfig --level 2345 $srv on 
 		elif [[ $option == "disable" ]]; then
 			
 			if $srvpath status | grep -q "running" >/dev/null 2>&1
@@ -584,12 +593,12 @@ Service_Control(){
 				read  ans 
 				case $ans in 
 					[yY]|[yY][eE][sS]) Warning "Stopping $srv"
-							   $srvpath stop
-							   chkconfig $srv off ;;
-					[nN]|[nN][oO])	Warning "Skipping $srv"
-							continue ;;
-						*)	Warning "Skipping $srv"
-							continue ;;
+				        			   $srvpath stop
+						        	   chkconfig $srv off   ;;
+    					[nN]|[nN][oO]) Warning "Skipping $srv"
+						        	   continue             ;;
+						            *) Warning "Skipping $srv"
+						        	   continue             ;;
 				esac
 			fi
 		fi
@@ -615,7 +624,7 @@ Xinetd_srv_control(){
                         continue
                 elif [[ $option == "enable" ]]; then
                         /etc/init.d/xinetd status | grep -q "running" ||
-			/etc/init.d/xinetd start >/dev/null 2>&1 
+		            	/etc/init.d/xinetd start >/dev/null 2>&1 
 			OK "Starting $srv in Xinetd"
                         chkconfig $srv on
                 elif [[ $option == "disable" ]]; then
@@ -627,11 +636,11 @@ Xinetd_srv_control(){
                                 read  ans
                                 case $ans in
                                         [yY]|[yY][eE][sS]) Warning "Stopping $srv in Xinetd"
-                                                           chkconfig $srv off ;;
-                                        [nN]|[nN][oO])  Warning "Skipping $srv"
-                                                        continue ;;
-                                                *)      Warning "Skipping $srv"
-                                                        continue ;;
+                                                           chkconfig $srv off       ;;
+                                            [nN]|[nN][oO]) Warning "Skipping $srv"
+                                                           continue                 ;;
+                                                        *) Warning "Skipping $srv"
+                                                           continue                 ;;
                                 esac
                         fi
                 fi
@@ -665,21 +674,20 @@ read input
             Disable_Group       ;;
         6)  echo "Service Control"
             Service_Control     
-	    Xinetd_srv_control;;
-	7)  echo "Selected All Options"
-	    SSH_Security_check
-	    TCPWrapper_check
-	    FileSystemChecks
-	    Kernel_Tuning
-	    Log_check
-	    Audit_control
-	    User_Set_Perm
-	    Disable_user
-	    Disable_Group
-	    Service_Control
-	    Xinetd_srv_control	;;
-	8)  exit 0		;;	
-
+            Xinetd_srv_control  ;;
+        7)  echo "Selected All Options"
+            SSH_Security_check
+            TCPWrapper_check
+            FileSystemChecks
+            Kernel_Tuning
+            Log_check
+            Audit_control
+            User_Set_Perm
+            Disable_user
+            Disable_Group
+            Service_Control
+            Xinetd_srv_control	;;
+        8)  exit 0		        ;;	
         *)  echo "unknown Options... "
                                 ;;
     esac
