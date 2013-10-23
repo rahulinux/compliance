@@ -3,8 +3,8 @@ compliance
 # Server Hardening
 
 Authors : 
-  - Vasanta Koli <http://itsgateway.com>
-  - Rahul Patil <http://www.linuxian.com>
+  - Vasanta Koli [ Solaris Admin <http://itsgateway.com> ]
+  - Rahul Patil  [ Linux Admin <http://www.linuxian.com> ]
 
 ![compliance demo](https://raw.github.com/rahulinux/compliance/master/security.png)
 
@@ -32,7 +32,7 @@ It will follow the server hardning process which is mention in "server hardning 
 
 # List of Security Rules:
 
-
+  - Under contruction.... 
   
 
   
