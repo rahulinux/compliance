@@ -32,6 +32,8 @@ It will follow the server hardning process which is mention in "server hardning 
 
 # List of Security Rules:
 
+  - Disable direct root login
+  - Deny all except ip associated with stdin using TCP Wrapper 
   - Under contruction.... 
   
 
