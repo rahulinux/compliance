@@ -384,20 +384,20 @@ FileSystemChecks() {
 	else
 		 if [[ $(mount | grep "/tmp" | awk '{print $NF}') = '(rw,noexec,nosuid,nodev)' ]]; then
 
-                        Exists "Partition /tmp $(mount | grep "/tmp" | awk '{print $NF}')"
-                else
+                       Exists "Partition /tmp $(mount | grep "/tmp" | awk '{print $NF}')"
+         else
                         OK "Updating /etc/fstab for /tmp partition.."
                         Fstab='/etc/fstab'
                         cp ${Fstab}{,-bkp-$(date +%F)} >/dev/null 2>&1
                         awk '1;/\/tmp/{$4="nosuid,nodev,noexec";print}' $Fstab | column -t > $Fstab
                         sed -i '/\/tmp/{s/^/#/;:a;n;ba}' $Fstab
                         mount -o remount /tmp
-                fi
+         fi
 
 	fi
 	
 	if ! $( mount | grep -q "/dev/shm" ); then
-                Warning "/dev/shm not exists.."
+        Warning "/dev/shm not exists.."
     else
 		if [[ $(mount | grep "/dev/shm" | awk '{print $NF}') = '(rw,noexec,nosuid,nodev)' ]]; then
 
@@ -425,7 +425,7 @@ Kernel_Tuning() {
 	do
     	search_pattern=$( echo "${values}" |\
 	    sed -ne 's/\(\S*\) \(=\) \([A-Za-z0-9.]*\)/^[ ^\\t]*\1*[ ^\\t]*\2\*[ ^\\t]*/p' )
-	if grep -qP "${search_pattern}" $Conf; then
+	    if grep -qP "${search_pattern}" $Conf; then
             
         # the value adding check already exists or not 
         exist_or_not=$( echo "${values}" |\
@@ -434,18 +434,18 @@ Kernel_Tuning() {
         	if grep -qP "${exist_or_not}" $Conf; then
         		Exists "$values" 
                 	continue
-            	else
+            else
 
-			# if exists then comment old and add new
+		    	# if exists then comment old and add new
     			sed_pattern=$( echo "${values}" |\
 	            	sed -ne 's/\(\S*\) \([A-Za-z0-9.\\\/=]*\) \([0-9]*\)/ \"\s\/\\(^\\s*\1\\s*[.0-9A-Za-z\\\/=]\\s*[.0-9A-Za-z\/]*\\\)\/# \\1\\n\1 \2 \3\/\"/p'	)
 	    		echo sed -i ${sed_pattern} $Conf | sh
 		        OK "${values}"
-            	fi
-	else
-		echo "${values}" >> $Conf
-		OK "${values}"	
-	fi
+            fi
+        else
+            echo "${values}" >> $Conf
+            OK "${values}"	
+        fi
 
 	done < "${Tmp_params}"
 	rm -f "${Tmp_params}"
@@ -453,14 +453,14 @@ Kernel_Tuning() {
 }
 
 Log_check() {
-	local Conf=/etc/syslog.conf
-	[[ ! -f ${Conf}"-bkp-$(date +%F)" ]] && cp ${Conf}{,-bkp-$(date +%F)}
-    	local Tmp_params=$(mktemp)
-    	Log_Params > "${Tmp_params}"
-    	regex='^[ ^\t\*a-z;.0-9 \t-]*'
-    	while read  values logfile
-    	do
-	
+    local Conf=/etc/syslog.conf
+   	[[ ! -f ${Conf}"-bkp-$(date +%F)" ]] && cp ${Conf}{,-bkp-$(date +%F)}
+   	local Tmp_params=$(mktemp)
+   	Log_Params > "${Tmp_params}"
+  	regex='^[ ^\t\*a-z;.0-9 \t-]*'
+   	while read  values logfile
+   	do
+
 		if ! grep -qP "${regex}${logfile}" $Conf; then
 			newvalue="$(echo -e "${values}\t${logfile}" | expand -t 56)"
 			echo sed -i "'\$a ${newvalue}'" $Conf | sh	
@@ -500,8 +500,8 @@ Log_check() {
 Audit_control() {
 
 	local Tmp_params=$(mktemp)
-    	Audit_Perm > "${Tmp_params}"
-    	while read  f
+   	Audit_Perm > "${Tmp_params}"
+   	while read  f
 	do
 		[[ ! -f $f ]] && touch $f
 		[[ $(stat -c '%a' ${f}) == 600 ]] && Exists "Permission 600 $f" ||
@@ -560,9 +560,9 @@ Disable_Group() {
               grep -qP "^#[ ^\t]*""${g}" $GrpFile && { Exists "Group $g already Disable"; continue; }
               sed -i "s/^$g/# $g/" $GrpFile
               OK "Disableing Group $g"
-         else
+     else
                Exists "Group $g already Disable"
-         fi
+     fi
 
 	done
 
@@ -619,31 +619,31 @@ Xinetd_srv_control(){
 	while read -u 3 srv option
 	do
 		local srvpath="/etc/xinetd.d/$srv"
-                if [[ ! -f $srvpath ]]; then
-                        Warning "$srv Service not exists in Xinetd"
-                        continue
-                elif [[ $option == "enable" ]]; then
-                        /etc/init.d/xinetd status | grep -q "running" ||
-		            	/etc/init.d/xinetd start >/dev/null 2>&1 
-			OK "Starting $srv in Xinetd"
-                        chkconfig $srv on
-                elif [[ $option == "disable" ]]; then
+        if [[ ! -f $srvpath ]]; then
+              Warning "$srv Service not exists in Xinetd"
+              continue
+        elif [[ $option == "enable" ]]; then
+                /etc/init.d/xinetd status | grep -q "running" ||
+		     	/etc/init.d/xinetd start >/dev/null 2>&1 
+			    OK "Starting $srv in Xinetd"
+                chkconfig $srv on
+        elif [[ $option == "disable" ]]; then
 
-                        if chkconfig --list $srv | grep -iq "on" >/dev/null 2>&1
-                        then
-                                echo "$srv Service currently Running..."
-                                echo -n "Do you want really stop this service (Yes/No)?(n): "
-                                read  ans
-                                case $ans in
-                                        [yY]|[yY][eE][sS]) Warning "Stopping $srv in Xinetd"
-                                                           chkconfig $srv off       ;;
-                                            [nN]|[nN][oO]) Warning "Skipping $srv"
-                                                           continue                 ;;
-                                                        *) Warning "Skipping $srv"
-                                                           continue                 ;;
-                                esac
-                        fi
+              if chkconfig --list $srv | grep -iq "on" >/dev/null 2>&1
+              then
+                      echo "$srv Service currently Running..."
+                      echo -n "Do you want really stop this service (Yes/No)?(n): "
+                      read  ans
+                      case $ans in
+                              [yY]|[yY][eE][sS]) Warning "Stopping $srv in Xinetd"
+                                                 chkconfig $srv off       ;;
+                                  [nN]|[nN][oO]) Warning "Skipping $srv"
+                                                 continue                 ;;
+                                              *) Warning "Skipping $srv"
+                                                  continue                ;;
+                      esac
                 fi
+           fi
 
 	done 3< $Tmp
 	rm -f $Tmp
@@ -687,7 +687,7 @@ read input
             Disable_Group
             Service_Control
             Xinetd_srv_control	;;
-        8)  exit 0		;;	
+        8)  exit 0		        ;;	
         *)  echo "unknown Options... "
                                 ;;
     esac
