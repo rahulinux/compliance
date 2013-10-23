@@ -356,7 +356,7 @@ TCPWrapper_check() {
 		Exists "ALL:ALL in $Hosts_Deny"
 	fi
 
-	CurrentIP=$(who -m | grep --color -oP "(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})")
+	CurrentIP=$(who -m | grep -oP "(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})")
 	Host_Allow=/etc/hosts.allow
 	SSHD_Entry=$(grep -i sshd: $Host_Allow)
 
@@ -403,7 +403,7 @@ FileSystemChecks() {
 
 			Exists "Partition /dev/shm $(mount | grep "/dev/shm" | awk '{print $NF}')"	
 		else
-            OK "Updating /etc/fstab for /dev/shm partition.."
+        		OK "Updating /etc/fstab for /dev/shm partition.."
 			Fstab='/etc/fstab'
 			cp ${Fstab}{,-bkp-$(date +%F)} >/dev/null 2>&1	
 			awk '1;/\/dev\/shm/{$4="nosuid,nodev,noexec";print}' $Fstab | column -t > $Fstab
@@ -425,27 +425,27 @@ Kernel_Tuning() {
 	do
     	search_pattern=$( echo "${values}" |\
 	    sed -ne 's/\(\S*\) \(=\) \([A-Za-z0-9.]*\)/^[ ^\\t]*\1*[ ^\\t]*\2\*[ ^\\t]*/p' )
-		if grep -qP "${search_pattern}" $Conf; then
+	if grep -qP "${search_pattern}" $Conf; then
             
-                # the value adding check already exists or not 
-                exist_or_not=$( echo "${values}" |\
-                sed -ne 's/\(\S*\) \(=\) \([A-Za-z0-9.]*\)/^[ ^\\t]*\1*[ ^\\t]*\2\*[ ^\\t]*\3/p')
+        # the value adding check already exists or not 
+        exist_or_not=$( echo "${values}" |\
+        sed -ne 's/\(\S*\) \(=\) \([A-Za-z0-9.]*\)/^[ ^\\t]*\1*[ ^\\t]*\2\*[ ^\\t]*\3/p')
 
-            if grep -qP "${exist_or_not}" $Conf; then
-                Exists "$values" 
-                continue
-            else
+        	if grep -qP "${exist_or_not}" $Conf; then
+        		Exists "$values" 
+                	continue
+            	else
 
 			# if exists then comment old and add new
     			sed_pattern=$( echo "${values}" |\
-	            	 sed -ne 's/\(\S*\) \([A-Za-z0-9.\\\/=]*\) \([0-9]*\)/ \"\s\/\\(^\\s*\1\\s*[.0-9A-Za-z\\\/=]\\s*[.0-9A-Za-z\/]*\\\)\/# \\1\\n\1 \2 \3\/\"/p'	)
+	            	sed -ne 's/\(\S*\) \([A-Za-z0-9.\\\/=]*\) \([0-9]*\)/ \"\s\/\\(^\\s*\1\\s*[.0-9A-Za-z\\\/=]\\s*[.0-9A-Za-z\/]*\\\)\/# \\1\\n\1 \2 \3\/\"/p'	)
 	    		echo sed -i ${sed_pattern} $Conf | sh
 		        OK "${values}"
-            fi
-		else
-			echo "${values}" >> $Conf
-		    OK "${values}"	
-		fi
+            	fi
+	else
+		echo "${values}" >> $Conf
+		OK "${values}"	
+	fi
 
 	done < "${Tmp_params}"
 	rm -f "${Tmp_params}"
@@ -455,11 +455,11 @@ Kernel_Tuning() {
 Log_check() {
 	local Conf=/etc/syslog.conf
 	[[ ! -f ${Conf}"-bkp-$(date +%F)" ]] && cp ${Conf}{,-bkp-$(date +%F)}
-    local Tmp_params=$(mktemp)
-    Log_Params > "${Tmp_params}"
-    regex='^[ ^\t\*a-z;.0-9 \t-]*'
-    while read  values logfile
-    do
+    	local Tmp_params=$(mktemp)
+    	Log_Params > "${Tmp_params}"
+    	regex='^[ ^\t\*a-z;.0-9 \t-]*'
+    	while read  values logfile
+    	do
 	
 		if ! grep -qP "${regex}${logfile}" $Conf; then
 			newvalue="$(echo -e "${values}\t${logfile}" | expand -t 56)"
@@ -500,8 +500,8 @@ Log_check() {
 Audit_control() {
 
 	local Tmp_params=$(mktemp)
-    Audit_Perm > "${Tmp_params}"
-    while read  f
+    	Audit_Perm > "${Tmp_params}"
+    	while read  f
 	do
 		[[ ! -f $f ]] && touch $f
 		[[ $(stat -c '%a' ${f}) == 600 ]] && Exists "Permission 600 $f" ||
@@ -556,7 +556,7 @@ Disable_Group() {
 	for g in "${Disable_Groups_list[@]}"; 
 	do
 		
-		if grep -qP "^${g}" $GrpFile; then
+	 if grep -qP "^${g}" $GrpFile; then
               grep -qP "^#[ ^\t]*""${g}" $GrpFile && { Exists "Group $g already Disable"; continue; }
               sed -i "s/^$g/# $g/" $GrpFile
               OK "Disableing Group $g"
@@ -687,7 +687,7 @@ read input
             Disable_Group
             Service_Control
             Xinetd_srv_control	;;
-        8)  exit 0		        ;;	
+        8)  exit 0		;;	
         *)  echo "unknown Options... "
                                 ;;
     esac
