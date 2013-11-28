@@ -389,8 +389,9 @@ FileSystemChecks() {
                         OK "Updating /etc/fstab for /tmp partition.."
                         Fstab='/etc/fstab'
                         cp ${Fstab}{,-bkp-$(date +%F)} >/dev/null 2>&1
-                        awk '1;/\/tmp/{$4="nosuid,nodev,noexec";print}' $Fstab | column -t > $Fstab
-                        sed -i '/\/tmp/{s/^/#/;:a;n;ba}' $Fstab
+                        awk '1;/\/tmp/{$4="nosuid,nodev,noexec";print}' $Fstab | column -t > ${Fstab}.tmp
+                        sed -i '/\/tmp/{s/^/#/;:a;n;ba}' ${Fstab}.tmp
+                        cat ${Fstab}.tmp > ${Fstab}
                         mount -o remount /tmp
          fi
 
@@ -406,8 +407,9 @@ FileSystemChecks() {
         		OK "Updating /etc/fstab for /dev/shm partition.."
 			Fstab='/etc/fstab'
 			cp ${Fstab}{,-bkp-$(date +%F)} >/dev/null 2>&1	
-			awk '1;/\/dev\/shm/{$4="nosuid,nodev,noexec";print}' $Fstab | column -t > $Fstab
-			sed -i '/\/dev\/shm/{s/^/#/;:a;n;ba}' $Fstab
+			awk '1;/\/dev\/shm/{$4="nosuid,nodev,noexec";print}' $Fstab | column -t > ${Fstab}.tmp
+			sed -i '/\/dev\/shm/{s/^/#/;:a;n;ba}' ${Fstab}.tmp
+      cat ${Fstab}.tmp > ${Fstab}
 			mount -o remount /dev/shm
 		fi
     fi
