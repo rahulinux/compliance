@@ -78,7 +78,7 @@ It will follow the server hardening process which is mention in "server hardenin
         - /var/log/messages*
         - /var/log/secure
 
-   - Build & Maintain Security
+  - Build & Maintain Security
      - Ensure passwd, shadow, and group File Permissions
      - Ensure unnecessary default user accounts are removed.
      - Ensure unnecessary default user accounts are removed. 
