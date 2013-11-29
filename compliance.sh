@@ -356,9 +356,12 @@ TCPWrapper_check() {
 		Exists "ALL:ALL in $Hosts_Deny"
 	fi
 
-	CurrentIP=$(who -m | grep -oP "(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})")
+	# CurrentIP=$(who -m | grep -oP "(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})")
+  # Above option having issue if `who` reports hostname 
+  # to solve this issue, we can use SSH_CLIENT environment variable as below 
+	CurrentIP=${SSH_CLIENT%% *} # extract only ip
 	Host_Allow=/etc/hosts.allow
-	SSHD_Entry=$(grep -i sshd: $Host_Allow)
+	SSHD_Entry=$(grep -i ^sshd: $Host_Allow)
 
 	if [[ -z $SSHD_Entry ]]; then
 		echo "SSHD: $CurrentIP" >> $Host_Allow
@@ -456,7 +459,7 @@ Kernel_Tuning() {
 
 Log_check() {
     local Conf=/etc/syslog.conf
-   	[[ ! -f ${Conf}"-bkp-$(date +%F)" ]] && cp ${Conf}{,-bkp-$(date +%F)}
+   	[[ ! -f ${Conf}"-bkp-$(date +%F)" ]] && { [[ -f ${Conf} ]] && cp ${Conf}{,-bkp-$(date +%F)}; }
    	local Tmp_params=$(mktemp)
    	Log_Params > "${Tmp_params}"
   	regex='^[ ^\t\*a-z;.0-9 \t-]*'
